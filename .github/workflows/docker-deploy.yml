@@ -3,49 +3,39 @@ name: CI/CD to Azure VM
 on:
   push:
     branches:
-      - main
+      - main # Trigger only when code is pushed to main branch
 
 jobs:
   build-test-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout your repository
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2️⃣ Set up Java (if Spring Boot) or Node (if MERN)
-      - name: Set up Java 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: "temurin"
-          java-version: "21"
+      # 1️⃣ Build Docker image & run tests
+      - name: Build Docker image
+        run: docker build -t data-generator:latest .
 
-      # 3️⃣ Build the project (Spring Boot example)
-      - name: Build with Maven
-        run: mvn clean package -DskipTests
+      # 2️⃣ Log in to Docker Hub
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-      # 4️⃣ Run tests (optional)
-      - name: Run tests
-        run: mvn test
+      # 3️⃣ Tag & Push image
+      - name: Push Docker image
+        run: |
+          docker tag data-generator:latest ${{ secrets.DOCKER_USERNAME }}/data-generator:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/data-generator:latest
 
-      # 5️⃣ Copy build artifact to Azure VM via SSH
-      - name: Deploy to Azure VM
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.AZURE_VM_IP }}
-          username: ${{ secrets.AZURE_VM_USER }}
-          key: ${{ secrets.AZURE_VM_SSH_KEY }}
-          source: "target/*.jar"
-          target: "/home/${{ secrets.AZURE_VM_USER }}/app"
-
-      # 6️⃣ Restart app on the VM
-      - name: Restart app on Azure VM
-        uses: appleboy/ssh-action@v1.2.1
+      # 4️⃣ Deploy to Azure VM
+      - name: Deploy on Azure VM
+        uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.AZURE_VM_IP }}
           username: ${{ secrets.AZURE_VM_USER }}
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
           script: |
-            pkill -f 'java -jar' || true
-            screen -dmS myapp java -jar /home/${{ secrets.AZURE_VM_USER }}/app/*.jar
+            docker pull ${{ secrets.DOCKER_USERNAME }}/data-generator:latest
+            docker stop data-generator || true
+            docker rm data-generator || true
+            docker run -d -p 8080:8080 --name data-generator ${{ secrets.DOCKER_USERNAME }}/data-generator:latest
