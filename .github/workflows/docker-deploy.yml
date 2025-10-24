@@ -18,8 +18,8 @@ jobs:
       - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '21'
+          distribution: "temurin"
+          java-version: "21"
 
       # 3️⃣ Build the project (Spring Boot example)
       - name: Build with Maven
@@ -40,7 +40,6 @@ jobs:
           target: "/home/${{ secrets.AZURE_VM_USER }}/app"
 
       # 6️⃣ Restart app on the VM
-      
       - name: Restart app on Azure VM
         uses: appleboy/ssh-action@v1.2.1
         with:
@@ -49,4 +48,5 @@ jobs:
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
           script: |
             pkill -f 'java -jar' || true
-            nohup java -jar /home/${{ secrets.AZURE_VM_USER }}/app/*.jar > app.log 2>&1 &
+            nohup java -jar /home/${{ secrets.AZURE_VM_USER }}/app/*.jar > /home/${{ secrets.AZURE_VM_USER }}/app/app.log 2>&1 &
+            disown
