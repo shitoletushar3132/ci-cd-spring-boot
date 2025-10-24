@@ -15,11 +15,11 @@ jobs:
         uses: actions/checkout@v4
 
       # 2️⃣ Set up Java (if Spring Boot) or Node (if MERN)
-      - name: Set up Java 17
+      - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       # 3️⃣ Build the project (Spring Boot example)
       - name: Build with Maven
