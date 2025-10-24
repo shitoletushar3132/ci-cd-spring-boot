@@ -40,6 +40,7 @@ jobs:
           target: "/home/${{ secrets.AZURE_VM_USER }}/app"
 
       # 6️⃣ Restart app on the VM
+      
       - name: Restart app on Azure VM
         uses: appleboy/ssh-action@v1.2.1
         with:
