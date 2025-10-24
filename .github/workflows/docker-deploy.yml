@@ -48,5 +48,4 @@ jobs:
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
           script: |
             pkill -f 'java -jar' || true
-            nohup java -jar /home/${{ secrets.AZURE_VM_USER }}/app/*.jar > /home/${{ secrets.AZURE_VM_USER }}/app/app.log 2>&1 &
-            disown
+            screen -dmS myapp java -jar /home/${{ secrets.AZURE_VM_USER }}/app/*.jar
