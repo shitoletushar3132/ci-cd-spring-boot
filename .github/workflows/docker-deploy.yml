@@ -1,0 +1,51 @@
+name: CI/CD to Azure VM
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Checkout your repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2️⃣ Set up Java (if Spring Boot) or Node (if MERN)
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # 3️⃣ Build the project (Spring Boot example)
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
+
+      # 4️⃣ Run tests (optional)
+      - name: Run tests
+        run: mvn test
+
+      # 5️⃣ Copy build artifact to Azure VM via SSH
+      - name: Deploy to Azure VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.AZURE_VM_IP }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          source: "target/*.jar"
+          target: "/home/${{ secrets.AZURE_VM_USER }}/app"
+
+      # 6️⃣ Restart app on the VM
+      - name: Restart app on Azure VM
+        uses: appleboy/ssh-action@v1.2.1
+        with:
+          host: ${{ secrets.AZURE_VM_IP }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          script: |
+            pkill -f 'java -jar' || true
+            nohup java -jar /home/${{ secrets.AZURE_VM_USER }}/app/*.jar > app.log 2>&1 &
